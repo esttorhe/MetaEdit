@@ -319,15 +319,30 @@ export default class MetaController {
     }
 
     private lineMatch(property: Partial<Property>, line: string): boolean {
-        const propertyRegex = new RegExp(`^\s*${property.key}\:{1,2}`);
-        const tagRegex = new RegExp(`^\s*${property.key}`);
+        const key = this.sanitizeKey(property);
+        const propertyRegex = new RegExp(`^\\s*${key}\:{1,2}`);
+        const tagRegex = new RegExp(`^\\s*${key}`);
 
-        if (property.key.contains('#')) {
+        if (key.contains('#')) {
             return tagRegex.test(line);
         }
 
         return propertyRegex.test(line);
     }
+
+    private sanitizeKey(property: Partial<Property>): string {
+        return property.key.contains('.') ? property.key.split('.')[1] : property.key;
+    }
+
+    private isNestedKey(property: Partial<Property>): boolean {
+        return property.key.contains('.');
+    }
+
+    private updateYamlLine(property: Partial<Property>, newValue: string): string {
+        // Defaults to 2 spaces for nested keys.
+        // todo: Use RegEx capture groups and extract the spaces for nested groups
+        return `${this.isNestedKey(property) ? '  ' + this.sanitizeKey(property) : property.key }: ${newValue}`;
+    } 
 
     private updatePropertyLine(property: Partial<Property>, newValue: string) {
         let newLine: string;
@@ -336,7 +351,7 @@ export default class MetaController {
                 newLine = `${property.key}:: ${newValue}`;
                 break;
             case MetaType.YAML:
-                newLine = `${property.key}: ${newValue}`;
+                newLine = this.updateYamlLine(property, newValue);
                 break;
             case MetaType.Tag:
                 if (this.useTrackerPlugin) {

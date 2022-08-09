@@ -34,7 +34,19 @@ export default class MetaEditParser {
         let metaYaml: Property[] = [];
 
         for (const key in parsedYaml) {
-            metaYaml.push({key, content: parsedYaml[key], type: MetaType.YAML});
+            const value = parsedYaml[key];
+            // Quite horrible way of checking if is a nested key/group. 
+            // It works for my current use case but needs cleanup
+            // todo: Refactor this code lines 40-50
+            if (typeof value === 'string' || value instanceof String || !isNaN(value) || key === 'tags') {
+                metaYaml.push({key: key, content: value, type: MetaType.YAML});
+            }
+            else {
+                for (const nestedKey in value) {
+                    const subKey = key + "." + nestedKey; 
+                    metaYaml.push({key: subKey, content: value[nestedKey], type: MetaType.YAML});
+                }
+            }
         }
 
         return metaYaml;
